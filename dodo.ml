@@ -82,7 +82,7 @@ module Chepa =
             Delimcc.shift prompt0 (fun _ -> InvalidDone);;
 
     (*
-    assumption : (unit -> bool) -> unit 
+    assertion : (unit -> bool) -> unit 
     Fonction permettant de continuer seulement les exécutions
     vérifiant un prédicat. On déclare INVALIDE les exécutions
     ne vérifiant pas le prédicat.
