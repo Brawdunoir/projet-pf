@@ -1,3 +1,5 @@
+
+
 module type Iter =
 sig
     type 'a t
@@ -73,9 +75,11 @@ struct
     type res =
         | Valid
         | Invalid
+        | Yield of (unit -> res)
+        | Fork of (unit -> res) * (unit -> unit)
 
     (* Prompt de la librairie Delimcc *)
-    let p = Delimcc.new_prompt()
+    let p = Delimcc.new_prompt ()
 
     (* assumption : (unit -> bool) -> unit *)
     (* Fonction permettant de continuer seulement les exécutions *)
@@ -86,7 +90,7 @@ struct
         if predicat () then
             Delimcc.shift p (fun k -> k ())
         else
-            Delimcc.shift p (fun _ -> Invalid)
+            Delimcc.shift p (fun _ -> Valid)
 
     (* assertion : (unit -> bool) -> unit *)
     (* Fonction permettant de continuer seulement les exécutions *)
@@ -95,25 +99,28 @@ struct
     (* Paramètre predicat : (unit -> bool), le prédicat *)
     let assertion predicat =
         if predicat () then
-            Delimcc.shift p (fun k -> Invalid)
+            Delimcc.shift p (fun _ -> Invalid)
         else
-            Delimcc.shift p (fun k -> k())
+            Delimcc.shift p (fun k -> k ())
 
     (* miracle : unit -> 'a *)
     (* Fonction qui interrompt l'exécution et la rend VALIDE *)
-    let miracle = Delimcc.shift p (fun _ -> Valid)
+    let miracle () = Delimcc.shift p (fun _ -> Valid)
 
     (* failure : unit -> 'a *)
     (* Fonction qui interrompt l'exécution et la rend INVALIDE *)
-    let failure = Delimcc.shift p (fun _ -> Invalid)
+    let failure () = Delimcc.shift p (fun _ -> Invalid)
 
     (* forall_bool : unit -> bool *)
     (* forke l'exécution en deux versions *)
     (* dans lesquelles le booléen renvoyé est différent *)
     (* L'exécution parente est valide ssi les DEUX exécutions *)
     (* filles sont valides *)
-    let forall_bool () = failwith("TODO")
-        
+    let forall_bool () =
+        Delimcc.shift p (fun k ->
+            match (k true, k false) with
+            | (Valid, Valid) -> Valid
+            | _ -> Invalid )
 
 
     (* forsome_bool : unit -> bool *)
@@ -121,5 +128,47 @@ struct
     (* dans lesquelles le booléen renvoyé est différent *)
     (* L'exécution parente est valide ssi au moins UNE exécution *)
     (* fille est valide *)
-    let forsome_bool () = failwith("TODO")
+    let forsome_bool () =
+        Delimcc.shift p (fun k ->
+            match (k true, k true) with
+            | (Invalid, Invalid) -> Invalid
+            | _ -> Valid)
+
+    let check f = failwith("TODO")
+    let foratleast flux = failwith("TODO")
+    let forall flux = failwith("TODO")
+    let forsome flux = failwith("TODO")
+
+    (* forall : 'a Flux.t -> 'a *)
+    (* forke l'exécution courante (généralisation du forall_bool) *)
+    (* en autant de versions qu'il y a d'éléments dans le flux *)
+    (* Paramètre flux : flux d'éléments de 'a qui vont être évalués après fork *)
+    (*let rec forall flux =
+    Tick(lazy(
+        match Flux.uncons flux with
+        | Some(t, flux') ->
+            match Flux.uncons flux' with
+            | None -> None
+            | _ -> let b = forall_bool () in if b then t else forall flux'
+        | _ -> failwith "il faut au moins un élement"
+    ))*)
+
+    (* forsome : 'a Flux.t -> 'a *)
+    (* forke l'exécution courante (généralisation du forsome_bool) *)
+    (* en autant de versions identiques qu'il y a d'éléments dans le flux *)
+    (* Paramètre flux : flux d'éléments de 'a qui vont être évalués après fork *)
+    (*let rec forsome flux =
+    Tick (lazy (
+    match Flux.uncons flux with
+    | Some(t, flux') ->
+        match Flux.uncons flux' with
+        | None -> forsome flux'
+        | _ -> let b = forsome_bool in if b then t else forsome flux'
+    | _ -> failwith "il faut au moins un élement"
+    ))*)
+
+    (* foratleast : int -> 'a Flux.t -> 'a *)
+    (* forke l'éxécution courante en autant de versions identiques *)
+    (* qu'il y a d'éléments dans le flux et l'exécution parente est *)
+    (* valide ssi au moins n éxécutions filles le sont *)
 end
