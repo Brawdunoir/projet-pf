@@ -1,6 +1,31 @@
 open Utilities
-open Flux
 open Ounit
+
+let%test "assertion" =
+    check (fun () -> assertion (fun () -> true))
+
+
+let%test "assertion_false" =
+    check (fun () ->
+        assertion (fun () -> false)) = false
+
+let%test "forall" =
+    check (fun () ->
+        let x = forall (range 1 10) in
+        assertion (fun () -> x>0))
+
+let%test "forall_false" =
+    check (fun () ->
+        let x = forall (range 1 10) in
+        assertion (fun () -> x<9)) = false
+
+
+let%test "forsome" =
+    check (fun () ->
+        let x = forsome (range 1 10) in
+        assertion (fun () -> x>8))
+
+
 
 
 let%test "exemple 1" =

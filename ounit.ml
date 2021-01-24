@@ -12,16 +12,10 @@ let miracle () = Delimcc.shift p (fun _ -> Valid)
 let failure () = Delimcc.shift p (fun _ -> Invalid)
 
 let assumption predicat =
-    if predicat () then
-        Delimcc.shift p (fun k -> k ())
-    else
-        miracle ()
+    if not (predicat ()) then miracle ()
 
 let assertion predicat =
-    if predicat () then
-        failure ()
-    else
-        Delimcc.shift p (fun k -> k ())
+    if not (predicat ()) then failure ()
 
 let forall_bool () =
     Delimcc.shift p (fun k ->
