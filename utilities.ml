@@ -27,6 +27,10 @@
     let%test _ = pgcd (-38) (-24) = 2
     let%test _ = pgcd 20 50 = 10
 
+    (* premier : int -> bool *)
+    (* Fonction qui indique si un nombre est premier ou non. *)
+    (* Paramètre n : l'entier dont on cherche la primalité *)
+    (* Résultat : bool la primalité de n *)
     let premier n =
     let rec non_diviseur d =
         d * d > (abs n) || ((abs n) mod d <> 0 && non_diviseur (d+1))
@@ -37,7 +41,10 @@
     let%test _ = premier 4 = false
     let%test _ = premier (-31) = true
 
-    (* SIGNATURE *)
+    (* range : int -> int ->  int  Flux.t *)
+    (* créé un flux d'entier entre deux entiers avec un pas de 1 *)
+    (* Paramètres a, b : a la borne inf et b la borne sup *)
+    (* Résultat : le int Flux.t contenant les nombres entre a et b *)
     let range a b =
         unfold (fun cpt -> if cpt > b then None else Some (cpt, cpt + 1)) a
     (* TEST *)
