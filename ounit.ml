@@ -41,7 +41,7 @@ let rec forsome flux =
     match Flux.uncons flux with
     | Some(t, flux') ->
         (match Flux.uncons flux' with
-        | None -> miracle ()
+        | None -> failure ()
         | _ -> if forsome_bool () then t else forsome flux')
     | _ -> failure ()
 
@@ -49,9 +49,10 @@ let rec foratleast n flux =
     match n, Flux.uncons flux with
     | 0 , _ -> miracle ()
     | _ , None -> failure ()
-    | _ , Some(t, flux') -> match forall_bool () with
-                            | true -> t; foratleast (n-1) flux'
-                            | _ -> foratleast n flux'
+    | _ , Some(t, flux') -> if forsome_bool () then
+        if forall_bool () then t
+        else foratleast (n-1) flux'
+        else foratleast n flux'
 
 let check prog =
     match Delimcc.push_prompt p (fun () -> prog (); Valid) with
