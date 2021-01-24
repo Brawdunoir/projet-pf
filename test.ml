@@ -44,6 +44,13 @@ let%test "foratleast_false" =
         assertion (fun () -> x > 7)) = false
 
 
+let%test "foratleast2" =
+    check (fun () ->
+        let x = foratleast 2 (range (-7) 7) in
+        assertion (fun () -> x*x == 25 ))
+
+
+
 let%test "assumption" =
     check (fun () ->
         let x = forall (range 2 50) in
