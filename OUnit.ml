@@ -1,5 +1,3 @@
-
-
 module type Iter =
 sig
     type 'a t
@@ -75,8 +73,6 @@ struct
     type res =
         | Valid
         | Invalid
-        | Yield of (unit -> res)
-        | Fork of (unit -> res) * (unit -> unit)
 
     (* Prompt de la librairie Delimcc *)
     let p = Delimcc.new_prompt ()
@@ -122,7 +118,6 @@ struct
             | (Valid, Valid) -> Valid
             | _ -> Invalid )
 
-
     (* forsome_bool : unit -> bool *)
     (* forke l'exécution en deux versions *)
     (* dans lesquelles le booléen renvoyé est différent *)
@@ -134,41 +129,47 @@ struct
             | (Invalid, Invalid) -> Invalid
             | _ -> Valid)
 
-    let check f = failwith("TODO")
-    let foratleast flux = failwith("TODO")
-    let forall flux = failwith("TODO")
-    let forsome flux = failwith("TODO")
-
     (* forall : 'a Flux.t -> 'a *)
     (* forke l'exécution courante (généralisation du forall_bool) *)
     (* en autant de versions qu'il y a d'éléments dans le flux *)
     (* Paramètre flux : flux d'éléments de 'a qui vont être évalués après fork *)
-    (*let rec forall flux =
-    Tick(lazy(
+    let rec forall flux =
         match Flux.uncons flux with
         | Some(t, flux') ->
-            match Flux.uncons flux' with
-            | None -> None
-            | _ -> let b = forall_bool () in if b then t else forall flux'
-        | _ -> failwith "il faut au moins un élement"
-    ))*)
+            (match Flux.uncons flux' with
+            | None -> t
+            | _ -> if forall_bool () then t else forall flux')
+        | _ -> failure ()
 
     (* forsome : 'a Flux.t -> 'a *)
     (* forke l'exécution courante (généralisation du forsome_bool) *)
     (* en autant de versions identiques qu'il y a d'éléments dans le flux *)
     (* Paramètre flux : flux d'éléments de 'a qui vont être évalués après fork *)
-    (*let rec forsome flux =
-    Tick (lazy (
-    match Flux.uncons flux with
-    | Some(t, flux') ->
-        match Flux.uncons flux' with
-        | None -> forsome flux'
-        | _ -> let b = forsome_bool in if b then t else forsome flux'
-    | _ -> failwith "il faut au moins un élement"
-    ))*)
+    let rec forsome flux =
+        match Flux.uncons flux with
+        | Some(t, flux') ->
+            (match Flux.uncons flux' with
+            | None -> miracle ()
+            | _ -> if forsome_bool () then t else forsome flux')
+        | _ -> failure ()
 
     (* foratleast : int -> 'a Flux.t -> 'a *)
     (* forke l'éxécution courante en autant de versions identiques *)
     (* qu'il y a d'éléments dans le flux et l'exécution parente est *)
     (* valide ssi au moins n éxécutions filles le sont *)
+    let rec foratleast n flux =
+        match n, Flux.uncons flux with
+        | 0 , _ -> miracle ()
+        | _ , None -> failure ()
+        | _ , Some(t, flux') -> match forall_bool () with
+                                | true -> t; foratleast (n-1) flux'
+                                | _ -> foratleast n flux'
+
+    (* check : (unit −> unit) −> bool *)
+    (* Exécute un programme instrumenté *)
+    (* Le résultat booléen représente la validité de l'exécution *)
+    let check prog =
+        match Delimcc.push_prompt p (fun () -> prog (); Valid) with
+        | Valid -> true
+        | Invalid -> false
 end
