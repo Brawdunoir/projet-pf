@@ -71,7 +71,7 @@ val forsome : 'a Flux.t -> 'a
 (* valide ssi au moins n éxécutions filles le sont *)
 (* Paramètre : - n le nombre minimum d'éxécutions valides qu'on veut, *)
 (*             - flux d'éléments de 'a qui vont être évalués après fork *)
-(* Résultat : les éléments du flux avec au moins n éxécutions filles valide*)
+(* Résultat : une liste de au moins n exécutions ou Invalid si on a moins de n *)
 val foratleast : int -> 'a Flux.t -> 'a
 
 (* check : (unit −> unit) −> bool *)
