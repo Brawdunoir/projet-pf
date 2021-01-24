@@ -1,8 +1,8 @@
 (* Module de OUnit *)
-
+open Flux
 (* Résultat renvoyé par une exécution *)
 type res
-    
+
 (* assumption : (unit -> bool) -> unit *)
 (* Fonction permettant de continuer seulement les exécutions *)
 (* vérifiant un prédicat. On déclare VALIDE les exécutions *)
@@ -69,7 +69,7 @@ val forsome : 'a Flux.t -> 'a
 (* forke l'éxécution courante en autant de versions identiques *)
 (* qu'il y a d'éléments dans le flux et l'exécution parente est *)
 (* valide ssi au moins n éxécutions filles le sont *)
-(* Paramètre : - n le nombre minimum d'éxécutions valides qu'on veut, *) 
+(* Paramètre : - n le nombre minimum d'éxécutions valides qu'on veut, *)
 (*             - flux d'éléments de 'a qui vont être évalués après fork *)
 (* Résultat : les éléments du flux avec au moins n éxécutions filles valide*)
 val foratleast : int -> 'a Flux.t -> 'a
