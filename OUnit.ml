@@ -51,7 +51,7 @@ module Flux : Iter with type 'a t = 'a flux =
     let map2 f i1 i2 = apply (apply (constant f) i1) i2;;
 end
 
-module type Test =
+module type OUnit =
 sig
     type res
     val assumption : (unit -> bool) -> unit
@@ -66,8 +66,9 @@ sig
     val check : (unit -> unit) -> bool
 end
 
-module TestImpl : Test =
+module OUnitImpl : OUnit =
 struct
+    include Flux
 
     (* Résultat renvoyé par une exécution *)
     type res =
@@ -76,6 +77,14 @@ struct
 
     (* Prompt de la librairie Delimcc *)
     let p = Delimcc.new_prompt ()
+
+    (* miracle : unit -> 'a *)
+    (* Fonction qui interrompt l'exécution et la rend VALIDE *)
+    let miracle () = Delimcc.shift p (fun _ -> Valid)
+
+    (* failure : unit -> 'a *)
+    (* Fonction qui interrompt l'exécution et la rend INVALIDE *)
+    let failure () = Delimcc.shift p (fun _ -> Invalid)
 
     (* assumption : (unit -> bool) -> unit *)
     (* Fonction permettant de continuer seulement les exécutions *)
@@ -86,7 +95,7 @@ struct
         if predicat () then
             Delimcc.shift p (fun k -> k ())
         else
-            Delimcc.shift p (fun _ -> Valid)
+            miracle ()
 
     (* assertion : (unit -> bool) -> unit *)
     (* Fonction permettant de continuer seulement les exécutions *)
@@ -95,17 +104,9 @@ struct
     (* Paramètre predicat : (unit -> bool), le prédicat *)
     let assertion predicat =
         if predicat () then
-            Delimcc.shift p (fun _ -> Invalid)
+            failure ()
         else
             Delimcc.shift p (fun k -> k ())
-
-    (* miracle : unit -> 'a *)
-    (* Fonction qui interrompt l'exécution et la rend VALIDE *)
-    let miracle () = Delimcc.shift p (fun _ -> Valid)
-
-    (* failure : unit -> 'a *)
-    (* Fonction qui interrompt l'exécution et la rend INVALIDE *)
-    let failure () = Delimcc.shift p (fun _ -> Invalid)
 
     (* forall_bool : unit -> bool *)
     (* forke l'exécution en deux versions *)
@@ -120,7 +121,7 @@ struct
 
     (* forsome_bool : unit -> bool *)
     (* forke l'exécution en deux versions *)
-    (* dans lesquelles le booléen renvoyé est différent *)
+    (* dans lesquelles le booléen renvoyé est identique *)
     (* L'exécution parente est valide ssi au moins UNE exécution *)
     (* fille est valide *)
     let forsome_bool () =
@@ -134,9 +135,9 @@ struct
     (* en autant de versions qu'il y a d'éléments dans le flux *)
     (* Paramètre flux : flux d'éléments de 'a qui vont être évalués après fork *)
     let rec forall flux =
-        match Flux.uncons flux with
+        match uncons flux with
         | Some(t, flux') ->
-            (match Flux.uncons flux' with
+            (match uncons flux' with
             | None -> t
             | _ -> if forall_bool () then t else forall flux')
         | _ -> failure ()
@@ -146,9 +147,9 @@ struct
     (* en autant de versions identiques qu'il y a d'éléments dans le flux *)
     (* Paramètre flux : flux d'éléments de 'a qui vont être évalués après fork *)
     let rec forsome flux =
-        match Flux.uncons flux with
+        match uncons flux with
         | Some(t, flux') ->
-            (match Flux.uncons flux' with
+            (match uncons flux' with
             | None -> miracle ()
             | _ -> if forsome_bool () then t else forsome flux')
         | _ -> failure ()
@@ -158,7 +159,7 @@ struct
     (* qu'il y a d'éléments dans le flux et l'exécution parente est *)
     (* valide ssi au moins n éxécutions filles le sont *)
     let rec foratleast n flux =
-        match n, Flux.uncons flux with
+        match n, uncons flux with
         | 0 , _ -> miracle ()
         | _ , None -> failure ()
         | _ , Some(t, flux') -> match forall_bool () with
@@ -172,4 +173,77 @@ struct
         match Delimcc.push_prompt p (fun () -> prog (); Valid) with
         | Valid -> true
         | Invalid -> false
+end
+
+module Test =
+struct
+    include OUnitImpl
+    include Flux
+
+    (* abs : int -> int *)
+    (* renvoie la valeur absolue d'un entier relatif *)
+    (* Paramètre : x entier *)
+    (* Postcondition : le résultat est positif *)
+    let abs x = if x <= 0 then -x else x
+    
+    let%test _ = abs 3 = 3
+    let%test _ = abs (-3) = 3
+    let%test _ = abs 0 = 0
+
+    (** pgcd : int -> int -> int
+    Fonction qui calcule le plus grand diviseur commun des deux paramètres 
+    Paramètres a b : deux entiers
+    Précondition : a > 0 et b > 0
+    Résultat : Plus Grand Diviseur Commun des deux paramètres
+    *)
+    let pgcd a b =
+    let rec pgcd_rec a b =
+        if a = b then a
+        else if a > b then pgcd_rec (a-b) b
+        else pgcd_rec a (b-a)
+    in
+    pgcd_rec (abs a) (abs b)
+
+    let%test _ = pgcd 3 3 = 3
+    let%test _ = pgcd 7 (-9) = 1
+    let%test _ = pgcd (-38) (-24) = 2
+    let%test _ = pgcd 20 50 = 10
+
+    let premier n =
+    let rec non_diviseur d =
+        d * d > (abs n) || ((abs n) mod d <> 0 && non_diviseur (d+1))
+    in
+    (abs n) <> 1 && non_diviseur 2
+
+    let%test _ = premier 7 = true
+    let%test _ = premier 4 = false
+    let%test _ = premier (-31) = true
+
+    (*let%test _ =
+    let values = unfold (fun cpt -> if cpt > 50 then None else Some (cpt, cpt+1)) 2 in
+    check (fun () ->
+    let a = forall values in
+    let b = forsome values in
+    assumption (fun () -> a <> b);
+    let r = premier a in
+    let predicat = (fun () -> r || (a mod b = 0))
+    in
+    if predicat () then
+        failure (Format.printf "%d,%d@." a b)
+    else
+        Delimcc.shift p (fun k -> k ()))*)
+
+    (* SIGNATURE *)
+    let range a b =
+        unfold (fun cpt -> if cpt > b then None else Some (cpt, cpt + 1)) a
+    (* TEST *)
+
+    let%test _ =
+        let values = range 1 10 in
+        check(fun () ->
+        let a = forall values in
+            assumption (fun () -> a <> 2);
+            assumption (fun () -> a <> 4);
+            assertion (fun () -> a <> 2 && a <> 4)
+    );;
 end

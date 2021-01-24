@@ -1,5 +1,5 @@
 (library
- (name ounit)
+ (name projet)
  (libraries delimcc)
  (inline_tests)
  (preprocess
