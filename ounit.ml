@@ -25,7 +25,7 @@ let forall_bool () =
 
 let forsome_bool () =
     Delimcc.shift p (fun k ->
-        match (k true, k true) with
+        match (k true, k false) with
         | (Invalid, Invalid) -> Invalid
         | _ -> Valid)
 
