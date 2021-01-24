@@ -47,7 +47,6 @@ let%test _ = premier (-31) = true
 (* range : int -> int ->  int  Flux.t *)
 (* créé un flux d'entier entre deux entiers avec un pas de 1 *)
 (* Paramètres a, b : a la borne inf et b la borne sup *)
-(* Résultat : le int Flux.t contenant les nombres entre a et b *)
+(* Résultat : le int Flux.t contenant les nombres entre a et b (inclus) *)
 let range a b =
     Flux.unfold (fun cpt -> if cpt > b then None else Some (cpt, cpt + 1)) a
-(* TEST *)
